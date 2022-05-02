@@ -1,0 +1,220 @@
+---
+title: 'STAT702: Week 1 Lab'
+output:
+  unilur::tutorial_pdf: default
+  unilur::tutorial_pdf_solution:
+    md_extensions: +example_lists
+  unilur::answer_rmd: default
+---
+
+```{r setup, echo=FALSE, include = FALSE, results = "hide", message=FALSE}
+library(knitr)
+figprefix = paste('Rfigs/', "STAT702_week01_", sep="")
+opts_chunk$set(fig.path=figprefix,fig.align='center', fig.show='hold',  out.width="50%")
+
+str(knitr::opts_template$get("solution"), give.attr = FALSE)
+knitr::opts_template$set(solution = list(box.title = "Solution",
+                box.body = list(fill = "lightcyan2", color="black"),
+                box.header = list(fill = "lightcyan2", colour="black"), 
+                box.collapse = TRUE))
+
+#install.packages("remotes")
+#remotes::install_github("koncina/unilur")
+
+```
+
+`````{block, solution=TRUE}
+This file contains the solutions.
+```
+
+Some of the exercises in this lab are based on those found in  [Wickham and Grolemund, R for Data Science](https://r4ds.had.co.nz/).
+
+
+
+#### Getting started
+(@) Install the `tidyverse` package
+
+```{r install_tidy, eval=FALSE}
+install.packages("tidyverse")
+```
+
+(@) Load the `tidyverse` package
+```{r load_tidy}
+library(tidyverse)
+```
+
+
+```{block, box.title = "Tip", box.body = list(fill = "lightblue")}
+You can get help in R by typing "?" followed by the function name. For example ?ggplot
+```
+
+ 
+#### ggplot2
+
+(@) Inspect the `mpg` dataset using the following code and answer the following questions.
+
+```{r inspect_mpg, results="hide"}
+mpg
+```
+
+  - How many cars are included in this dataset?
+```{r solution=TRUE}
+#multiple ways to get this answer
+dim(mpg)
+nrow(mpg)
+```
+
+
+  - What does the variable "cty" represent?
+```{r, eval=FALSE, solution=TRUE}
+?mpg
+#cty = city miles per gallon
+```
+
+
+(@) Do cars with big engines use more fuel than cars with small engines?  Use `ggplot` to create a plot to explore this question.
+
+```{r, solution = TRUE}
+ggplot(data = mpg) +
+  geom_point(mapping=aes(x=displ, y=hwy))
+```
+
+(@) Add a colour aesthetic to the plot to represent the type of transmission.
+
+```{r, solution = TRUE}
+ggplot(data = mpg) +
+  geom_point(mapping=aes(x=displ, y=hwy, col=trans))
+```
+
+(@) Does the fuel efficiency differ for cars of different classes? Create a boxplot, with one box for each class.
+
+
+```{r, solution = TRUE}
+ggplot(data = mpg) +
+  geom_boxplot(mapping=aes(y=hwy, x=class)) 
+```
+
+(@) In the previous boxplot, flip the axes.
+
+
+```{r, solution = TRUE}
+ggplot(data = mpg) +
+  geom_boxplot(mapping=aes(y=hwy, x=class)) + 
+  coord_flip()
+```
+
+
+(@) In the following graph, why are the points not blue?
+
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ, y=hwy, col="blue"))
+```
+
+`````{block, solution = TRUE}
+They are not blue because the command is inside the aes() function. It should be outside it.
+```
+ 
+ 
+ 
+#### dplyr
+
+```{r}
+library(dplyr)
+```
+
+(@) Load and inspect the `flights` dataset
+
+```{r}
+library(nycflights13)
+flights
+```
+
+(@) What does the variable "air_time" represent?
+
+```{r, solution=TRUE, eval=FALSE}
+?flights
+#air_time = Amount of time spent in the air, in minutes
+```
+
+(@) How many flights departed on 1st March 2013?
+
+```{r, solution=TRUE}
+march1 <- filter(flights, month==3, day==1) 
+nrow(march1)
+#958 flights
+```
+
+(@) For the flights which departed on 1st March 2013, what was the destination of the one with the biggest departure delay?
+
+```{r, solution=TRUE}
+# There are multiple ways to write the code for this question. This is one of them.
+
+# sort flights be departure time
+arrange(march1, desc(dep_delay)) %>%
+# select relevant columns (not required, but makes it clearer)
+  select(dest, dep_delay) %>%
+# extract top entry
+  top_n(n=1)  -> late_dep
+
+late_dep
+
+# Use airport metadata to get name of airport
+filter(airports, faa==late_dep$dest)
+
+# Dallas Fort Worth Intl
+```
+
+
+(@) Which destination has the greatest mean departure delay in 2013? Hint: use group_by and summarise
+
+```{r, solution=TRUE}
+#  South Bend Rgnl
+flights %>% 
+  group_by(dest) %>% 
+  summarise(mean_dep_delay = mean(dep_delay, na.rm = TRUE)) %>%
+  arrange(desc(mean_dep_delay)) %>%
+  slice(1) -> dep_delay_max_average
+
+filter(airports, faa==dep_delay_max_average$dest)$name
+```
+
+(@) Use summarise to determine the number of flights by each carrier.
+
+Hint: `summarise(n=n())`
+```{r, solution=TRUE}
+flights %>% group_by(carrier) %>% summarise(n=n())
+
+```
+
+(@) For flights which departed on 1st March, create a boxplot showing the departure delay, with one box for each "carrier". Which airline seems to have the worst on-time performance?
+
+```{r, solution=TRUE}
+flights %>% 
+  filter(month==3, day==1) %>%
+ggplot() + 
+  geom_boxplot(mapping = aes(y=dep_delay, x=carrier))
+```
+
+
+#### Application
+
+Pick one of the following datasets:
+
+* `ggplot2::mpg`
+* `nycflights13::flights`
+* `ggplot2::diamonds`
+
+(@) Look at the help page in R for your chosen dataset, e.g. `?flights`.
+
+(@) In groups of 2 or 3, write 3 questions about this dataset.
+
+e.g. Is there a relationship between engine size and fuel efficiency?
+
+(@) Create an appropriate graph or summary statistics to investigate each of your questions.
+
+
+#### Further practice
+
+(@)  Read R4DS chapters 1, 2, 3 and 5 and do the exercises. If you are new to R, read chapter 4 too.
+
