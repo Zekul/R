@@ -1,0 +1,413 @@
+---
+title: "Datawrangling"
+author: "Luke Singh"
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+output: html_document
+---
+
+
+
+
+
+Some of the exercises in this lab are based on those found in  [Wickham and Grolemund, R for Data Science](https://r4ds.had.co.nz/).
+
+ 
+
+## Getting started
+
+(@)  Open R Studio and open the STAT702 R project that you created last week. 
+
+(@) Download "STAT702_week03_lab_datawrangling2_answer.Rmd" from Blackboard and save in your project directory.
+
+(@) Knit the file. You will write your answers to the following questions in that file.
+
+
+(@) In this lab we will need a number of packages. 
+
+```{r requiredPackages}
+# List of packages
+packages <- c("tidyverse", "readxl", "nycflights13", "lubridate")
+```
+
+- Install them, if required, by uncommenting the following code.
+```{r installPackages}
+# Find packages that are not installed
+packages_to_install <- packages[!(packages %in% installed.packages()[,"Package"])]
+
+# Install required packages
+#if(length(packages_to_install) > 0) install.packages(packages_to_install, 
+#                                                     dependencies=TRUE))
+```
+
+- Load the packages
+```{r loadPackages}
+# Load new packages
+sapply(packages, library, character.only=TRUE)
+```
+
+
+```{block, box.title = "Tip", box.body = list(fill = "lightblue")}
+You can get help in R by typing "?" followed by the function name. For example ?ggplot
+```
+
+## Joins
+
+
+(@) Consider the following data set.
+
+  - Run the following code and inspect the outputs.
+```{r inspect_tibbles, results="hide"}
+
+STAT702exams <- tribble(
+  ~studID, ~grade,
+     1, "A",
+     2, "B",
+     3, "C+"
+)
+STAT702classlist <- tribble(
+  ~studentID, ~name,
+     1, "Charlotte",
+     2, "Zoe",
+     3, "Caitlin",
+     4, "Abel"
+)
+
+
+STAT700classlist <- tribble(
+  ~studentID, ~name,
+     1, "Charlotte",
+     2, "Zoe",
+     6, "Conor",
+     7, "Archie"
+)
+
+```
+
+Use the appropriate \verb|join| function to create a dataset that can answers the following questions.
+
+- Create a dataset containing the name, ID and exam mark of all STAT702 students. Include students who didn't sit the exam.
+
+```{r}
+ggplot(data = STAT700classlist) +
+  geom_point(mapping = aes(x = names, y = studentID), square = TRUE)
+```
+
+
+
+- Create a dataset containing the name, ID and exam mark of the STAT702 students who sat the exam.  
+
+```{r}
+STAT700classlist %>%
+  right_join(STAT702exams, by=c("studentID"="studID"))
+```
+
+
+- Create a dataset containing 
+the name and ID of the STAT702 students who sat the exam.
+
+```{r}
+STAT700classlist %>%
+  semi_join(STAT702exams, by=c("studentID"="studID"))
+```
+
+
+
+- Which students didn't sit the STAT702 exam?
+
+
+```{r}
+STAT700classlist %>%
+  anti_join(STAT702exams, by=c("studentID"="studID"))
+```
+
+
+- Create a dataset containing the name and ID of all students studying either of the level 7 STAT papers.
+Ensure your new dataset has only 2 columns: one for ID and one for name.
+
+```{r}
+STAT700classlist %>%
+  full_join(STAT702classlist, by=c("studentID" = "studentID", "name" = "name"))
+```
+
+
+
+- Create a dataset containing the name and ID of all students studying both of the level 7 STAT papers.
+Ensure your new dataset has only 2 columns: one for ID and one for name.
+
+```{r}
+STAT700classlist %>%
+  inner_join(STAT702classlist, by=c("studentID" = "studentID", "name" = "name"))
+#semi_join works too but inner join will allow dupes if any.
+```
+
+
+(@)  Use the appropriate \verb|join| function to create a dataset that can answer the following questions.
+You will need to you some other functions well (e.g. \verb|filter|).
+
+- Create a table showing the names of the destinations that JetBlue Airways flies to.  Include a column showing the number of flights to each destination.
+`
+
+Start from this code:
+```{r jetblue_starter}
+selected_airlines <- airlines %>% filter(name %in% c("JetBlue Airways"))
+```
+
+ 
+```{r}
+jetblue <- flights %>%
+  semi_join(selected_airlines, by = "carrier") %>%
+  count(dest) %>%
+  left_join(airports, by = c("dest" = "faa")) %>%
+  select(dest, name, n)
+```
+
+ 
+- What destinations do both JetBlue Airways and United Air Lines Inc (UA) fly to?
+ 
+```{r}
+united <- flights %>%
+  filter(carrier == "UA") %>%
+  count(dest) %>%
+  left_join(airports, by = c("dest" = "faa")) %>%
+  select(dest, name, n)
+
+inner_join(jetblue, united, by = c("dest" = "dest", "name" = "name"),
+           suffix = c("JetBlue", "United"))
+```
+
+
+(@) Use ggplot to construct a bar plot showing the number of flights per month. Add a title and subtitle to your plot.
+```{r}
+flights %>% group_by(month) %>%
+  summarize(Number_of_Flights = n ()) %>%
+  ggplot()+
+  geom_bar(mapping = aes(x = month, y = Number_of_Flights), stat = "identity",
+           fill = "darkblue")+
+  labs(title = "Monthly Total Flights",
+       subtitle = paste("2013"),
+       y = "Number of Flights",
+       x = "Time") + theme_bw(base_size = 20) +
+  scale_x_continuous("Month", breaks = 1:12, labels = month.abb)
+```
+
+ 
+ 
+ 
+## Strings
+
+(@) Use \verb|str_view| and \verb|str_view_all| to identify regular expressions which do the following:
+
+- Identify all digits
+```{r str_view_setup}
+x <- c("25th May 2019", "April 19th 2005", "12 December 1984")
+```
+
+
+```{r}
+# Write your answer here
+```
+
+ 
+- Identify the year in each string. 
+
+Hint. Consider the following code.
+```{r str_view_first2digits}
+str_view_all(x, "^[\\d]{2}")
+```
+ 
+
+```{r}
+str_view_all(x, "[\\d]{4}$")
+```
+
+ 
+- Identify the month
+```{r}
+str_view_all(x, "[A-Z][a-z]*")
+```
+
+
+(@)  Use the appropriate \verb|stringr| function for each of the following questions.
+
+- Sort in alphabetical order
+
+```{r sort}
+x <- c("apple", "pear", "banana", "eggplant")
+```
+
+```{r}
+str_sort(x)
+```
+
+
+- Replace all vowels with  \verb|-|.
+
+```{r vowels}
+x <- c("apple", "pear", "banana", "eggplant")
+```
+
+```{r}
+str_replace_all(x, "[aeiou]", "-")
+```
+
+ 
+- Combine the following vectors to create a vector containing the day, month and year, e.g. "12 September 2010".
+```{r strc}
+day <- c(1, 2, 3, 4)
+month <- c("April", "May", "May", "July")
+year <- c(2009, 2019, 1999, 2005)
+```
+
+```{r}
+str_c(day, month, year, "")
+```
+
+
+
+(@)  Using the flights data, create a new tibbble which contains only following sentences about each flight.
+
+Hint: consider the functions \verb|transmute| and \verb|str_c|.
+
+Test your code on this subset of data.
+```{r challenge_setup}
+flights_subset <- flights[1:10,]
+```
+
+ 
+- Flight UA1545 from EWR to IAH on 1/1/2013, departed at 517.
+```{r}
+flights_subset %>% transmute(
+  description = str_c("Flight ", flight, "from ", origin, "to ", dest, "on ", day, "/", month, "/", year,
+                      ", departed at ", dep_time, ".", sep= "")
+)
+```
+
+
+
+- Challenge: Flight UA1545 from EWR to IAH on 1 January 2013, departed 2 minutes late at 5:17am.
+
+## Dates and Times
+
+(@) Get started
+
+- Load the packages (if you haven't done so already)
+```{r}
+#install.packages("lubridate")
+#library(lubridate)
+#library(nycflights13)
+```
+- Check package has installed. Find out what the date and time is, right now.
+
+```{r}
+# this is a date
+today()
+
+# this is a date-time
+now()
+```
+
+(@) Creating dates and times
+
+- Run the following code to create dates from strings. Inspect the output, then modify the code to be today's date.
+```{r}
+ymd("2017-01-31")
+mdy("January 31st, 2017")
+dmy("31-Jan-2017")
+```
+
+- Run the following code to create date-times from strings. Inspect the output, then modify the code to be today's date.
+```{r}
+ymd_hms("2017-01-31 20:11:59")
+mdy_hm("01/31/2017 08:01")
+```
+
+- Dates and date-times can also be created from individual variables. Create a `departure` variable using the year, month, day, hour and minute in the flights dataset.
+
+```{r}
+flights %>% 
+  select(year, month, day, hour, minute)
+
+flights %>% 
+  select(year, month, day, hour, minute) %>% 
+  mutate(departure = make_datetime(year, month, day, hour, minute))
+
+```
+
+
+- Using the variables `year`, `month`, `day` and  `dep_time`, create a new date-time variable called a `departure_time`. Use the function `select` to make the new departure time variable the first column,  followed by all other variables. 
+Save the resulting tibble as `flights_dt`.
+
+Hint: consider how you can use modulus arithmetic to extract the relevant information from `dep_time`.
+
+```{r}
+123 %% 100
+123 %/% 100
+```
+
+
+```{r}
+flights_dt <- flights %>%
+  filter(!is.na(dep_time)) %>%
+  mutate(departure_time = make_datetime(year, month, day, dep_time %/%100,
+                                        dep_time %% 100)) %>%
+  select(departure_time, everything())
+```
+
+
+- Visualise the departure times on 1st January 2013 using the `flights_dt` dataset.
+
+
+
+(@) Extracting date-time components 
+
+- Use the function `ymd_hms` to create a date-time object with the current date and time. Save the object as a variable called `datetime`.
+
+```{r}
+flights_dt %>%
+  filter(departure_time < ymd(20130102)) %>%
+  ggplot(aes(departure_time)) +
+  geom_freqpoly(bindwidth = 600)
+```
+
+
+- Use the function `year` to extract the value of the year from your date-time object.
+
+
+
+- Use the function `month` to extract the value of the month from your date-time object.   
+
+```{r}
+datetime <- ymd_hms("2021-03-19 12:01:56")
+```
+
+
+- Use the function `month` to extract the value of the month from your date-time object.  What do the options `label` and `abbr` do? Use `?month` to find out more, then test your answer by running the code in R. 
+
+```{r}
+month(datetime, label = TRUE, abbr = FALSE)
+```
+
+
+- What do the functions `mday`, `yday` and `wday` do?
+```{r}
+mday(datetime)
+yday(datetime)
+wday(datetime)
+```
+
+
+- Using the tibble `flights_dt` create a new variable called `month2` by extracting the month from the `departure_time` column.
+Use the function select to select only the `departure_time` and `month2` columns. Check that `month2` correctly extracts the month.
+
+```{r}
+flights_dt %>% mutate(
+  month2= month(departure_time)
+) %>% select(departure_time, month2)
+```
+
+
+## Further practice
+
+(@)  Review the examples in the lecture notes
+(@)  Read R4DS chapters 13 - 16, 27 and do the exercises.
+
